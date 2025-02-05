@@ -59,8 +59,10 @@
 */
 
 typedef struct {
+    char tramID[128];
     char location[128];
     int passenger_count;
+
 } TramInfo;
 
 typedef struct {
@@ -180,29 +182,38 @@ int main(int argc, char *argv[]){
             // value-padding
             content_length = buffer[i];
             i++;
-            char passenger_value[content_length + 1];
-            strncpy(passenger_val, buffer + i, content_length);
-            tram_id_value[content_length] = '\0';
+            char value_padding[content_length + 1];
+            strncpy(value_padding, buffer + i, content_length);
+            value_padding[content_length] = '\0';
             i += content_length;
 
+            // payload
+            content_length = buffer[i];
+            i++;
+            char payload[content_length + 1];
+            strncpy(payload, buffer + i, content_length);
+            payload[content_length] = '\0';
+            i += content_length;
+
+
+            // printf("msgtype: %s\n", msgtype);
+            // printf("msg_type_value: %s\n", value);
+            // printf("tram_id: %s\n", tram_id);
+            // printf("tram_id_value: %s\n", tram_id_value);
+            // printf("value_padding: %s\n", value_padding);
+            // printf("payload: %s\n", payload);
             
-            // if (strcmp(value, "LOCATION") == 0) {
-            //    // extract location
-            //     content_length = buffer[i];
-            //     i++;
-            //     char location[content_length + 1];
-            //     strncpy(location, buffer + i, content_length);
-            //     location[content_length] = '\0';
-            //     i += content_length;
-            //     printf("#######LOCATION:%s\n", location);
-            // } 
-
-
-            printf("msgtype: %s\n", msgtype);
-            printf("value: %s\n", value);
-            printf("tram_id: %s\n", tram_id);
-            printf("tram_id_value: %s\n", tram_id_value);
-
+            if(strcmp(value, "LOCATION") == 0) {
+                // location packet
+                printf("location packet\n");
+                update_tram_info(tram_id_value,payload,"LOCATION");
+            }
+            if(strcmp(value, "PASSENGER_COUNT") == 0) {
+                // passenger count packet
+                printf("passenger_count packet\n");
+                update_tram_info(tram_id_value,payload,"PASSENGER_COUNT");
+            }
+            print_dashboard();
         }
 
         printf("*************************************\n");
@@ -217,7 +228,7 @@ int main(int argc, char *argv[]){
 // Function to find tram by ID
 int find_tram_index(char* tram_id) {
     for (int i = 0; i < num_trams; i++) {
-        if (strcmp(trams[i].location, tram_id) == 0) {
+        if (strcmp(trams[i].tramID, tram_id) == 0) {
             return i;
         }
     }
@@ -230,7 +241,7 @@ void update_tram_info(char* tram_id, char* value, char* msgtype) {
     
     if (tram_index == -1) {
         // If tram not found, add it to the list
-        strcpy(trams[num_trams].location, tram_id);
+        strcpy(trams[num_trams].tramID, tram_id);
         tram_index = num_trams;
         num_trams++;
     }
