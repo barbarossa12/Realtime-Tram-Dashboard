@@ -8,6 +8,8 @@
 #include <netdb.h>
 #include <ctype.h>
 
+#define MAX_TRAMS 100
+
 /* 
     The Tram data server (server.py) publishes messages over a custom protocol. 
     
@@ -55,6 +57,28 @@
 
     Feel free to modify the code below, which already implements a TCP socket consumer and dumps the content to a string & byte array
 */
+
+typedef struct {
+    char location[128];
+    int passenger_count;
+} TramInfo;
+
+typedef struct {
+    char messageType[128];
+    char messageTypeValue[128];
+    char tramID[128];
+    char tramIDValue[128];
+    char passengerCount[128];
+    char locationString[128];
+} tramDataPacket;
+
+TramInfo trams[MAX_TRAMS];
+int num_trams = 0;
+
+
+int find_tram_index(char* tram_id);
+void update_tram_info(char* tram_id, char* value, char* msgtype);
+void print_dashboard();
 
 void error(char* msg) {
     perror(msg);
@@ -113,8 +137,121 @@ int main(int argc, char *argv[]){
 		n = read(sockfd, buffer, 255);
 		if(n<0)
 			error("Error reading from Server");
-		dump_buffer(buffer);
+		// dump_buffer(buffer);
+        
+        int i = 0;
+        printf("*************************************\n");
+        while (i < n) {
+
+            // extract the message type information
+            int content_length = buffer[i];
+            i++;
+            char msgtype[content_length + 1];
+            strncpy(msgtype, buffer + i, content_length);
+            msgtype[content_length] = '\0';
+            i += content_length;
+            
+            // extract  the value based on the message type
+            content_length = buffer[i];
+            i++;
+            char value[content_length + 1];
+            strncpy(value, buffer + i, content_length);
+            value[content_length] = '\0';
+            i += content_length;
+
+            // extract the tram ID field
+            content_length = buffer[i];
+            i++;
+            char tram_id[content_length + 1];
+            strncpy(tram_id, buffer + i, content_length);
+            tram_id[content_length] = '\0';
+            i += content_length;
+            
+
+
+            // tram ID value
+            content_length = buffer[i];
+            i++;
+            char tram_id_value[content_length + 1];
+            strncpy(tram_id_value, buffer + i, content_length);
+            tram_id_value[content_length] = '\0';
+            i += content_length;
+
+            // value-padding
+            content_length = buffer[i];
+            i++;
+            char passenger_value[content_length + 1];
+            strncpy(passenger_val, buffer + i, content_length);
+            tram_id_value[content_length] = '\0';
+            i += content_length;
+
+            
+            // if (strcmp(value, "LOCATION") == 0) {
+            //    // extract location
+            //     content_length = buffer[i];
+            //     i++;
+            //     char location[content_length + 1];
+            //     strncpy(location, buffer + i, content_length);
+            //     location[content_length] = '\0';
+            //     i += content_length;
+            //     printf("#######LOCATION:%s\n", location);
+            // } 
+
+
+            printf("msgtype: %s\n", msgtype);
+            printf("value: %s\n", value);
+            printf("tram_id: %s\n", tram_id);
+            printf("tram_id_value: %s\n", tram_id_value);
+
+        }
+
+        printf("*************************************\n");
+
+
+
 	}
 	
 	return 0;
 }
+
+// Function to find tram by ID
+int find_tram_index(char* tram_id) {
+    for (int i = 0; i < num_trams; i++) {
+        if (strcmp(trams[i].location, tram_id) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+// Function to update tram info
+void update_tram_info(char* tram_id, char* value, char* msgtype) {
+    int tram_index = find_tram_index(tram_id);
+    
+    if (tram_index == -1) {
+        // If tram not found, add it to the list
+        strcpy(trams[num_trams].location, tram_id);
+        tram_index = num_trams;
+        num_trams++;
+    }
+
+    if (strcmp(msgtype, "LOCATION") == 0) {
+        // Update location for the tram
+        strcpy(trams[tram_index].location, value);
+    } else if (strcmp(msgtype, "PASSENGER_COUNT") == 0) {
+        // Update passenger count for the tram
+        trams[tram_index].passenger_count = atoi(value);
+    }
+}
+
+// Function to print the dashboard
+void print_dashboard() {
+    printf("\n\nRealtime Tram Dashboard\n");
+    for (int i = 0; i < num_trams; i++) {
+        printf("Tram %d:\n", i+1);
+        printf("    Location: %s\n", trams[i].location);
+        printf("    Passenger Count: %d\n\n", trams[i].passenger_count);
+    }
+}
+
+
